@@ -1,6 +1,7 @@
 package com.generation.CRUDFarmacia.controller;
 
 import com.generation.CRUDFarmacia.model.Product;
+import com.generation.CRUDFarmacia.repository.CategoryRepository;
 import com.generation.CRUDFarmacia.repository.ProductRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,9 @@ public class ProductController {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private CategoryRepository categoryRepository;
 
     @GetMapping
     public ResponseEntity<List<Product>> getAll(
@@ -48,17 +52,24 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> post(@Valid @RequestBody Product product) {
-        return  ResponseEntity.status(HttpStatus.CREATED)
-                .body(productRepository.save(product));
+    public ResponseEntity<Product>post(@Valid @RequestBody Product product){
+        if(categoryRepository.existsById(product.getCategory().getId()))
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(productRepository.save(product));
+        throw new  ResponseStatusException(HttpStatus.BAD_REQUEST, "Categoria não existente", null);
     }
 
     @PutMapping
-    public ResponseEntity<Product> put (@Valid @RequestBody Product product) {
-        return productRepository.findById(product.getId())
-                .map(resposta -> ResponseEntity.status(HttpStatus.CREATED)
-                        .body(productRepository.save(product)))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
+    public ResponseEntity<Product> put(@Valid @RequestBody Product product){
+        if (productRepository.existsById(product.getId())) {
+
+            if(categoryRepository.existsById(product.getCategory().getId()))
+                return ResponseEntity.status(HttpStatus.OK)
+                        .body(productRepository.save(product));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta categoria não existe!", null);
+
+        }
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
     @GetMapping("/name/{name}")
